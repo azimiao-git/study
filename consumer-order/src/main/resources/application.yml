@@ -4,9 +4,12 @@ server:
 spring:
   application:
     name: order-service
+  cloud:
+    zookeeper:
+      connect-string: 192.168.11.128:2181
 
-eureka:
-  client:
-    register-with-eureka: false
-    service-url:
-      defaultZone: http://localhost:10086/eureka
+#eureka:
+#  client:
+#    register-with-eureka: false
+#    service-url:
+#      defaultZone: http://localhost:10086/eureka
