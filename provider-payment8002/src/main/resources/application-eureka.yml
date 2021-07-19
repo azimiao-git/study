@@ -1,0 +1,7 @@
+eureka:
+  instance:
+    instance-id: payment8002 # 显示的主机名称
+    prefer-ip-address: true # 显示ip地址
+  client:
+    service-url:
+      defaultZone: http://localhost:10086/eureka

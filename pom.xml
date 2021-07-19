@@ -18,7 +18,11 @@
 
     <modules>
         <module>sentinel</module>
-        <module>cloud-provider-payment</module>
+        <module>provider-payment</module>
+        <module>provider-payment8002</module>
+        <module>common</module>
+        <module>consumer-order</module>
+        <module>eureka-server</module>
     </modules>
 
     <properties>

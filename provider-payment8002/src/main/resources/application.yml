@@ -1,0 +1,43 @@
+server:
+  port: 8082
+
+spring:
+  profiles:
+    active: zookeeper
+  application:
+    name: payment-service
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://39.108.233.115:3306/study?serverTimezone=Asia/Shanghai&useSSL=false&characterEncoding=utf-8
+    username: root
+    password: ENC(pAPkwLDSWx7cY/2CyEBU1rxB8JkrUOeA)
+  redis:
+    host: ENC(/slvBCxq/sgup/IMDDI8zTSt3+AWkntj)
+    password: ENC(pAPkwLDSWx7cY/2CyEBU1rxB8JkrUOeA)
+    # 连接超时时间
+    timeout: 10s
+    lettuce:
+      pool:
+        # 连接池中的最小空闲连接
+        min-idle: 0
+        # 连接池中的最大空闲连接
+        max-idle: 5
+        # 连接池的最大数据库连接数
+        max-active: 5
+        # #连接池最大阻塞等待时间（使用负值表示没有限制）
+        max-wait: 60000ms
+
+
+mybatis-plus:
+  mapper-locations:
+    - classpath:mapper/*.xml
+
+
+jasypt:
+  encryptor:
+    #默认加密算法:PBEWITHHMACSHA512ANDAES_256，sha512+AES算法，安全性更高，但是需要 Java JDK 1.9+
+    #所以使用 PBEWithMD5AndDES md5+des算法
+    # 3.0.0版本需要指定这两个
+      # Failed to bind properties under 'spring.datasource.password' to java.lang.String:
+    algorithm: PBEWithMD5AndDES
+    iv-generator-classname: org.jasypt.iv.NoIvGenerator
