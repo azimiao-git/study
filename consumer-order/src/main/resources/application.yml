@@ -8,8 +8,20 @@ spring:
     zookeeper:
       connect-string: 192.168.11.128:2181
 
+feign:
+  hystrix:
+    enabled: true
+
+ribbon:
+  ReadTimeout: 5000
+  ConnectTimeout: 5000
+
 #eureka:
 #  client:
 #    register-with-eureka: false
 #    service-url:
 #      defaultZone: http://localhost:10086/eureka
+logging:
+  level:
+    # feign日志以什么级别监控哪个日志
+    top.zl.order.feign.PaymentFeignClient: debug

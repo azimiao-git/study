@@ -7,6 +7,7 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.client.RestTemplate;
 import top.zl.common.vo.ResultMsg;
 import top.zl.order.entity.Payment;
+import top.zl.order.feign.PaymentFeignClient;
 
 import javax.annotation.Resource;
 
@@ -29,6 +30,9 @@ public class OrderController {
     @Resource
     private RestTemplate restTemplate;
 
+    @Resource
+    private PaymentFeignClient paymentFeignClient;
+
    /* @GetMapping("consumer/create")
     public ResultMsg<Boolean> create(Payment payment){
         return restTemplate.postForObject(PAYMENT_URL+"payment/create",payment,ResultMsg.class);
@@ -36,7 +40,8 @@ public class OrderController {
 
     @GetMapping("consumer/zk")
     public String create(Payment payment){
-        return restTemplate.getForObject(PAYMENT_URL+"payment/zk",String.class);
+        //return restTemplate.getForObject(PAYMENT_URL+"payment/zk",String.class);
+        return paymentFeignClient.payment();
     }
 
 
