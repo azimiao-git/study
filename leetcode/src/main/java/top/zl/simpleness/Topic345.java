@@ -6,7 +6,7 @@ package top.zl.simpleness;
  * 输入："leetcode"
  * 输出："leotcede"
  * <p>
- * 元音字母 a、e、i、o、u;
+ * 元音字母 a、e、i、o、u、A、E、I、O、U;
  *
  * @author zl
  * 2021/08/19
