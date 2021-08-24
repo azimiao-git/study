@@ -1,4 +1,9 @@
-package top.zl.v1.servlet;
+package top.zl.v1;
+
+
+import top.zl.annotation.Component;
+import top.zl.annotation.Controller;
+import top.zl.annotation.Service;
 
 import javax.servlet.ServletConfig;
 import javax.servlet.ServletException;
@@ -17,7 +22,7 @@ import java.util.*;
  * @author zl
  * 2021/08/23
  */
-@WebServlet(initParams = {@WebInitParam(name = "contextConfig", value = "application.properties")})
+@WebServlet(urlPatterns = "/",initParams = {@WebInitParam(name = "contextConfig", value = "application.properties")},loadOnStartup = 0)
 public class DispatcherServlet extends HttpServlet {
 
     /**
@@ -76,6 +81,8 @@ public class DispatcherServlet extends HttpServlet {
                 scanner(scanPackage+"."+file.getName());
             }else{
                 if(!file.getName().endsWith(".class")){continue;}
+                //把全类名存下来
+                System.out.println((scanPackage + "." + file.getName().replace(".class", "")));
                 classNames.add(scanPackage+"."+file.getName().replace(".class",""));
             }
         }
@@ -87,11 +94,38 @@ public class DispatcherServlet extends HttpServlet {
                 Class<?> clazz = Class.forName(className);
                 //接口不实例
                 if (clazz.isInterface()) continue;
+                //有注解才实例化
+                if (!clazz.isAnnotationPresent(Component.class) && !clazz.isAnnotationPresent(Controller.class)
+                        && !clazz.isAnnotationPresent(Service.class)) continue;
 
+
+                Object o = clazz.newInstance();
+                ioc.put(this.instanceName(clazz), o);
             }
-        } catch (ClassNotFoundException e) {
+        } catch (ClassNotFoundException | IllegalAccessException | InstantiationException e) {
             e.printStackTrace();
         }
+    }
+
+    /**
+     * 返回实例的名称
+     */
+    private String instanceName(Class<?> clazz) {
+        Component component = clazz.getAnnotation(Component.class);
+        if (component != null && !"".equals(component.value())) {
+            return component.value();
+        }
+        Controller controller = clazz.getAnnotation(Controller.class);
+        if (controller != null && !"".equals(controller.value())) {
+            return controller.value();
+        }
+        Service service = clazz.getAnnotation(Service.class);
+        if (service != null && !"".equals(service.value())) {
+            return service.value();
+        }
+        //默认使用类名首字母小写
+        String name = clazz.getSimpleName();
+        return name.substring(0, 1).toLowerCase() + name.substring(1);
     }
 
     private void autowired() {

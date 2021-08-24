@@ -1,6 +1,6 @@
 package top.zl.v1.service.impl;
 
-import top.zl.v1.annotation.Service;
+import top.zl.annotation.Service;
 import top.zl.v1.dto.UserDto;
 import top.zl.v1.service.UserService;
 

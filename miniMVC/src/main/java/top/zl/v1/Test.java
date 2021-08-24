@@ -1,7 +1,7 @@
 package top.zl.v1;
 
-import top.zl.v1.annotation.Component;
-import top.zl.v1.annotation.Service;
+import top.zl.annotation.Service;
+import top.zl.v1.dto.UserDto;
 
 /**
  * @author zl
@@ -11,6 +11,6 @@ import top.zl.v1.annotation.Service;
 public class Test {
     public static void main(String[] args) {
 
-
+        Class<UserDto> userDtoClass = UserDto.class;
     }
 }
