@@ -1,12 +1,13 @@
 package top.zl.v1;
 
 
-import top.zl.annotation.Component;
-import top.zl.annotation.Controller;
-import top.zl.annotation.Service;
+import top.zl.annotation.*;
+import top.zl.convert.Converter;
+import top.zl.handler.HandlerMapping;
 
 import javax.servlet.ServletConfig;
 import javax.servlet.ServletException;
+import javax.servlet.ServletInputStream;
 import javax.servlet.annotation.WebInitParam;
 import javax.servlet.annotation.WebServlet;
 import javax.servlet.http.HttpServlet;
@@ -15,6 +16,9 @@ import javax.servlet.http.HttpServletResponse;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.lang.reflect.Field;
+import java.lang.reflect.Method;
+import java.lang.reflect.Parameter;
 import java.net.URL;
 import java.util.*;
 
@@ -38,7 +42,17 @@ public class DispatcherServlet extends HttpServlet {
     /**
      * 容器
      */
-    private final Map<String,Object> ioc = new HashMap<>();
+    private final Map<String, Object> ioc = new HashMap<>();
+
+    /**
+     * 映射关系
+     */
+    private final List<HandlerMapping> handlerMappings = new ArrayList<>();
+
+    /**
+     * 参数转换
+     */
+    private final List< Converter<?,?>> converters = new ArrayList<>();
 
     @Override
     public void init(ServletConfig config) throws ServletException {
@@ -51,6 +65,74 @@ public class DispatcherServlet extends HttpServlet {
         initInstance();
         //4.依赖注入
         autowired();
+        //5.初始化映射关系
+        initHandlerMapping();
+    }
+
+
+    @Override
+    protected void service(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+        //根据请求路径获取对应的Handler
+        String servletPath = req.getServletPath();
+        HandlerMapping handler = getHandler(servletPath);
+
+        if (handler==null){
+            resp.getWriter().write("404 NOT FOUND!");
+            return;
+        }
+
+        Method method = handler.getMethod();
+        Object[] values = new Object[method.getParameters().length];
+        Parameter[] parameters = method.getParameters();
+        for (int i = 0; i < parameters.length; i++) {
+
+            if (parameters[i].getType()==HttpServletRequest.class){
+                values[i] = req;
+            }else if (parameters[i].getType()==HttpServletResponse.class){
+                values[i] = resp;
+            }else{
+                ServletInputStream inputStream = req.getInputStream();
+            }
+
+        }
+
+    }
+
+    private HandlerMapping getHandler(String servletPath) {
+        for (HandlerMapping mapping : handlerMappings) {
+            if (mapping.getUri().equals(servletPath)){
+                return mapping;
+            }
+        }
+        return null;
+    }
+
+
+    /**
+     * 初始化url和方法的对应关系
+     */
+    private void initHandlerMapping() {
+        for (Object value : ioc.values()) {
+            Class<?> clazz = value.getClass();
+            if (!clazz.isAnnotationPresent(Controller.class)) continue;
+
+            String baseUrl = "";
+            if (clazz.isAnnotationPresent(RequestMapping.class)) {
+                RequestMapping annotation = clazz.getAnnotation(RequestMapping.class);
+                baseUrl = annotation.value();
+            }
+
+            Method[] methods = clazz.getMethods();
+            for (Method method : methods) {
+                if (!method.isAnnotationPresent(RequestMapping.class)) continue;
+
+                RequestMapping annotation = method.getAnnotation(RequestMapping.class);
+
+                String url = ("/" + baseUrl + "/" + annotation.value()).replaceAll("/+","/");
+                handlerMappings.add(new HandlerMapping(value,method,url));
+            }
+
+        }
     }
 
     private void loadConfig(String contextConfig) {
@@ -59,8 +141,8 @@ public class DispatcherServlet extends HttpServlet {
             config.load(resourceAsStream);
         } catch (IOException e) {
             e.printStackTrace();
-        }finally {
-            if (resourceAsStream!=null){
+        } finally {
+            if (resourceAsStream != null) {
                 try {
                     resourceAsStream.close();
                 } catch (IOException e) {
@@ -76,14 +158,16 @@ public class DispatcherServlet extends HttpServlet {
         URL url = this.getClass().getClassLoader().getResource("/" + scanPackage.replaceAll("\\.", "/"));
         assert url != null;
         File classpath = new File(url.getFile());
-        for (File file : classpath.listFiles()) {
-            if (file.isDirectory()){
-                scanner(scanPackage+"."+file.getName());
-            }else{
-                if(!file.getName().endsWith(".class")){continue;}
+        for (File file : Objects.requireNonNull(classpath.listFiles())) {
+            if (file.isDirectory()) {
+                scanner(scanPackage + "." + file.getName());
+            } else {
+                if (!file.getName().endsWith(".class")) {
+                    continue;
+                }
                 //把全类名存下来
                 System.out.println((scanPackage + "." + file.getName().replace(".class", "")));
-                classNames.add(scanPackage+"."+file.getName().replace(".class",""));
+                classNames.add(scanPackage + "." + file.getName().replace(".class", ""));
             }
         }
     }
@@ -100,7 +184,11 @@ public class DispatcherServlet extends HttpServlet {
 
 
                 Object o = clazz.newInstance();
-                ioc.put(this.instanceName(clazz), o);
+                String name = this.instanceName(clazz);
+                if (ioc.containsKey(name)) {
+                    throw new RuntimeException("The " + name + " is exist");
+                }
+                ioc.put(name, o);
             }
         } catch (ClassNotFoundException | IllegalAccessException | InstantiationException e) {
             e.printStackTrace();
@@ -129,13 +217,28 @@ public class DispatcherServlet extends HttpServlet {
     }
 
     private void autowired() {
-
-    }
-
-
-    @Override
-    protected void service(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
-        super.service(req, resp);
+        for (Object bean : ioc.values()) {
+            Field[] declaredFields = bean.getClass().getDeclaredFields();
+            for (Field field : declaredFields) {
+                AutoWired annotation = field.getAnnotation(AutoWired.class);
+                if (annotation != null) {
+                    try {
+                        field.setAccessible(true);
+                        Object value = null;
+                        //按照类型注入
+                        for (Object o : ioc.values()) {
+                            if (field.getType().isInstance(o)) {
+                                value = o;
+                                break;
+                            }
+                        }
+                        field.set(bean, value);
+                    } catch (IllegalAccessException e) {
+                        e.printStackTrace();
+                    }
+                }
+            }
+        }
     }
 
 }

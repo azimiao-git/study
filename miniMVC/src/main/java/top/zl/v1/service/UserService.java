@@ -11,5 +11,5 @@ public interface UserService {
 
     String add(UserDto dto);
 
-    String query();
+    String query(String name);
 }

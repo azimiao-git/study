@@ -17,7 +17,7 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public String query() {
-        return null;
+    public String query(String name) {
+        return "query:"+name;
     }
 }
