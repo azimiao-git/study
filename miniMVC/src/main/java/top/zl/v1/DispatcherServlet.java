@@ -7,7 +7,6 @@ import top.zl.handler.HandlerMapping;
 
 import javax.servlet.ServletConfig;
 import javax.servlet.ServletException;
-import javax.servlet.ServletInputStream;
 import javax.servlet.annotation.WebInitParam;
 import javax.servlet.annotation.WebServlet;
 import javax.servlet.http.HttpServlet;
@@ -17,6 +16,7 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.lang.reflect.Field;
+import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
 import java.net.URL;
@@ -49,11 +49,6 @@ public class DispatcherServlet extends HttpServlet {
      */
     private final List<HandlerMapping> handlerMappings = new ArrayList<>();
 
-    /**
-     * 参数转换
-     */
-    private final List< Converter<?,?>> converters = new ArrayList<>();
-
     @Override
     public void init(ServletConfig config) throws ServletException {
 
@@ -85,15 +80,27 @@ public class DispatcherServlet extends HttpServlet {
         Object[] values = new Object[method.getParameters().length];
         Parameter[] parameters = method.getParameters();
         for (int i = 0; i < parameters.length; i++) {
-
-            if (parameters[i].getType()==HttpServletRequest.class){
+            Parameter parameter = parameters[i];
+            if (parameter.getType() == HttpServletRequest.class) {
                 values[i] = req;
-            }else if (parameters[i].getType()==HttpServletResponse.class){
+            } else if (parameter.getType() == HttpServletResponse.class) {
                 values[i] = resp;
-            }else{
-                ServletInputStream inputStream = req.getInputStream();
+            } else {
+                String value = req.getParameter(parameter.getName());
+                if (value != null) {
+                    if (parameter.getType() == String.class) {
+                        values[i] = req.getParameter(parameter.getName());
+                    } else if (parameter.getType() == Long.class) {
+                        values[i] = Long.parseLong(value);
+                    }
+                }
             }
-
+        }
+        try {
+            Object invoke = method.invoke(handler.getTarget(), values);
+            resp.getWriter().write(invoke.toString());
+        } catch (IllegalAccessException | InvocationTargetException e) {
+            e.printStackTrace();
         }
 
     }

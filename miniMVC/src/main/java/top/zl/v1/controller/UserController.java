@@ -6,7 +6,6 @@ import top.zl.annotation.RequestMapping;
 import top.zl.v1.service.UserService;
 
 import javax.servlet.http.HttpServletResponse;
-import java.io.IOException;
 
 /**
  * @author zl
@@ -20,12 +19,8 @@ public class UserController {
     private UserService userService;
 
     @RequestMapping("detail")
-    public void detail(String name, HttpServletResponse response){
-        try {
-            response.getWriter().write(userService.query(name));
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+    public String detail(String name, HttpServletResponse response, Long age) {
+        return userService.query(name)+"-->"+age;
     }
 
 }
